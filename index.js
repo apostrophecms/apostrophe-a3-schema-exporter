@@ -1,26 +1,27 @@
 const fs = require('fs-extra');
 const { stripIndent } = require('common-tags');
+const prettier = require('prettier');
 
 module.exports = {
   construct(self, options) {
     self.addTask(
       'export',
       stripIndent`
-        Exports A2 schemas to A3 format.
+        Exports A2 schemas to A3 format by outputting a "schema.js" file in every module folder.
 
-        Optional argument: folder name relative to root where to search for modules. By default, it is "lib/modules".
+        Options:
+        * --folder: folder name relative to root where to search for modules. By default, it is "lib/modules". Usage: --folder=src/lib/modules
+        * --keepTags: A3 does not have a "tags" field type anymore. If true, convert tags to an array containing strings. By default, false (tags are not kept). Usage: --keepTags
       `,
       async (apos, argv) => {
-        let folder = 'lib/modules';
-        if (argv._[1]) {
-          folder = argv._[1];
-        }
+        const { folder = 'lib/modules', keepTags } = argv;
+
         for (const aposModule of Object.values(apos.modules)) {
           if (
             aposModule.schema &&
-            aposModule.schema.length
+            aposModule.schema.length &&
+            aposModule.name === 'article'
           ) {
-
             const moduleName = aposModule.schema[0].moduleName;
             if (moduleName && await fs.pathExists(`${folder}/${moduleName}`)) {
               const fields = aposModule.schema.reduce((acc, cur) => {
@@ -28,40 +29,43 @@ module.exports = {
                   sortify, group, moduleName, name, checkTaken, ...props
                 } = cur;
                 acc[name] = props;
+
+                if (cur.type === 'tags' || cur.type === 'array') {
+                  if (keepTags || cur.type === 'array') {
+                    const schema = cur.type === 'tags'
+                      ? [ {
+                        name,
+                        ...props,
+                        type: 'string',
+                        label: 'Tag'
+                      } ]
+                      : props.schema;
+
+                    const arrayFields = schema.reduce(
+                      (arrayAcc, arrayCur) => {
+                        const {
+                          name, moduleName, ...arrayProps
+                        } = arrayCur;
+                        arrayAcc.add[name] = arrayProps;
+                        return arrayAcc;
+                      },
+                      { add: {} }
+                    );
+
+                    acc[name] = {
+                      type: 'array',
+                      label: props.label,
+                      fields: arrayFields
+                    };
+                  }
+                }
+
                 return acc;
               }, {});
 
-              // eslint-disable-next-line no-inner-declarations
-              function convertObjToString(obj) {
-                return Object
-                  .entries(obj)
-                  .reduce((acc, cur) => {
-                    if (
-                      typeof cur[1] === 'object' &&
-                      cur[1] !== null &&
-                      !Array.isArray(cur[1])
-                    ) {
-                      acc += cur[0].includes('-')
-                        ? `
-                          '${cur[0]}':  {${convertObjToString(cur[1])}
-                          },
-                      `
-                        : `
-                        ${cur[0]}:  {${convertObjToString(cur[1])}
-                      },`;
-                    } else {
-                      acc += cur[0].includes('-')
-                        ? `'${cur[0]}': '${cur[1]}',`
-                        : `
-                            ${cur[0]}: '${cur[1]}',`;
-                    }
-                    return acc;
-                  }, '');
-              }
-
               await fs.outputFile(
                 `${folder}/${moduleName}/schema.js`,
-                stripIndent`
+                prettier.format(`
                   module.exports = (self, options) => {
                     return {
                       extend: '@apostrophecms/piece-type',
@@ -69,11 +73,11 @@ module.exports = {
                         label: '${moduleName}',
                       },
                       fields: {
-                        add: { ${convertObjToString(fields)} }
+                        add: ${JSON.stringify(fields, null, 2)}
                       }
                     };
                   };
-                `
+                `, { singleQuote: true })
               );
             }
           }
