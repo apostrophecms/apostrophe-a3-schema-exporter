@@ -2,6 +2,30 @@ const fs = require('fs-extra');
 const { stripIndent } = require('common-tags');
 const prettier = require('prettier');
 
+const moduleTypes = {
+  'apostrophe-widgets': '@apostrophecms/widget-type',
+  'apostrophe-custom-pages': '@apostrophecms/page-type',
+  'apostrophe-pieces': '@apostrophecms/piece-type',
+  'apostrophe-pieces-pages': '@apostrophecms/piece-page-type',
+  'apostrophe-any-page-manager': '@apostrophecms/any-page-type',
+  'apostrophe-global': '@apostrophecms/global',
+  'apostrophe-polymorphic-manager': '@apostrophecms/polymorphic-type',
+  'apostrophe-pages': '@apostrophecms/page'
+};
+
+const fieldTypes = {
+  joinByArray: 'relationship',
+  joinByOne: 'relationship',
+  joinByArrayReverse: 'relationshipReverse',
+  joinByOneReverse: 'relationshipReverse'
+};
+
+const widgetTypes = {
+  'apostrophe-rich-text': '@apostrophecms/rich-text',
+  'apostrophe-video': '@apostrophecms/video',
+  'apostrophe-images': '@apostrophecms/image'
+};
+
 module.exports = {
   construct(self, options) {
     self.addTask(
@@ -22,25 +46,18 @@ module.exports = {
             return aposModule.__meta.name.includes(nativeModule);
           });
 
-          if (aposModule.schema && aposModule.schema.length && isCustomModule) {
-            // console.log('aposModule._meta', require('util').inspect(aposModule.__meta, {
-            //   colors: true,
-            //   depth: 3
-            // }));
-            // console.log(
-            //   'aposModule.name',
-            //   require('util').inspect(aposModule.name, {
-            //     colors: true,
-            //     depth: 1
-            //   }),
-            //   aposModule.__meta.name
-            // );
+          if (isCustomModule && aposModule.schema && aposModule.schema.length) {
+            const moduleTypeInA2 = aposModule.__meta.chain
+              .reverse()
+              .find(element => Object.keys(moduleTypes).find(type => element.name === type));
 
             const moduleName = aposModule.schema[0].moduleName;
             if (
+              moduleTypeInA2 && moduleTypeInA2.name &&
               moduleName &&
               (await fs.pathExists(`${folder}/${moduleName}`))
             ) {
+              const moduleTypeInA3 = moduleTypes[moduleTypeInA2.name];
               const fields = aposModule.schema.reduce((acc, cur) => {
                 const {
                   sortify,
@@ -55,14 +72,12 @@ module.exports = {
                   if (keepTags || cur.type === 'array') {
                     const schema =
                       cur.type === 'tags'
-                        ? [
-                          {
-                            name,
-                            ...props,
-                            type: 'string',
-                            label: 'Tag'
-                          }
-                        ]
+                        ? [ {
+                          name,
+                          ...props,
+                          type: 'string',
+                          label: 'Tag'
+                        } ]
                         : props.schema;
 
                     const arrayFields = schema.reduce(
@@ -83,6 +98,22 @@ module.exports = {
                     };
                   }
                 } else {
+                  if (cur.type === 'area') {
+                    const widgets = Object.keys(props.options.widgets).reduce((widgetAcc, widgetCur) => {
+                      if (widgetTypes[widgetCur]) {
+                        const newWidgetName = widgetTypes[widgetCur];
+                        widgetAcc[newWidgetName] = props.options.widgets[widgetCur];
+                      }
+                      return widgetAcc;
+                    }, {});
+                    props.options.widgets = widgets;
+                  } else if (fieldTypes[cur.type]) {
+                    if (cur.type.includes('joinByOne')) {
+                      props.max = 1;
+                    }
+                    props.type = fieldTypes[cur.type];
+                  }
+
                   acc[name] = props;
                 }
 
@@ -95,7 +126,7 @@ module.exports = {
                   `
                   module.exports = (self, options) => {
                     return {
-                      extend: '@apostrophecms/piece-type',
+                      extend: '${moduleTypeInA3}',
                       options: {
                         label: '${moduleName}',
                       },
