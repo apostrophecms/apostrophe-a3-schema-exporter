@@ -17,29 +17,53 @@ module.exports = {
         const { folder = 'lib/modules', keepTags } = argv;
 
         for (const aposModule of Object.values(apos.modules)) {
-          if (
-            aposModule.schema &&
-            aposModule.schema.length &&
-            aposModule.name === 'article'
-          ) {
+          const nativeModules = [ 'apostrophe-', '-auto-pages' ];
+          const isCustomModule = !nativeModules.some(nativeModule => {
+            return aposModule.__meta.name.includes(nativeModule);
+          });
+
+          if (aposModule.schema && aposModule.schema.length && isCustomModule) {
+            // console.log('aposModule._meta', require('util').inspect(aposModule.__meta, {
+            //   colors: true,
+            //   depth: 3
+            // }));
+            // console.log(
+            //   'aposModule.name',
+            //   require('util').inspect(aposModule.name, {
+            //     colors: true,
+            //     depth: 1
+            //   }),
+            //   aposModule.__meta.name
+            // );
+
             const moduleName = aposModule.schema[0].moduleName;
-            if (moduleName && await fs.pathExists(`${folder}/${moduleName}`)) {
+            if (
+              moduleName &&
+              (await fs.pathExists(`${folder}/${moduleName}`))
+            ) {
               const fields = aposModule.schema.reduce((acc, cur) => {
                 const {
-                  sortify, group, moduleName, name, checkTaken, ...props
+                  sortify,
+                  group,
+                  moduleName,
+                  name,
+                  checkTaken,
+                  ...props
                 } = cur;
-                acc[name] = props;
 
                 if (cur.type === 'tags' || cur.type === 'array') {
                   if (keepTags || cur.type === 'array') {
-                    const schema = cur.type === 'tags'
-                      ? [ {
-                        name,
-                        ...props,
-                        type: 'string',
-                        label: 'Tag'
-                      } ]
-                      : props.schema;
+                    const schema =
+                      cur.type === 'tags'
+                        ? [
+                          {
+                            name,
+                            ...props,
+                            type: 'string',
+                            label: 'Tag'
+                          }
+                        ]
+                        : props.schema;
 
                     const arrayFields = schema.reduce(
                       (arrayAcc, arrayCur) => {
@@ -58,6 +82,8 @@ module.exports = {
                       fields: arrayFields
                     };
                   }
+                } else {
+                  acc[name] = props;
                 }
 
                 return acc;
@@ -65,7 +91,8 @@ module.exports = {
 
               await fs.outputFile(
                 `${folder}/${moduleName}/schema.js`,
-                prettier.format(`
+                prettier.format(
+                  `
                   module.exports = (self, options) => {
                     return {
                       extend: '@apostrophecms/piece-type',
@@ -77,7 +104,9 @@ module.exports = {
                       }
                     };
                   };
-                `, { singleQuote: true })
+                `,
+                  { singleQuote: true }
+                )
               );
             }
           }
