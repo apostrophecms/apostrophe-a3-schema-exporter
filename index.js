@@ -1,30 +1,9 @@
 const fs = require('fs-extra');
 const { stripIndent } = require('common-tags');
 const prettier = require('prettier');
-
-const moduleTypes = {
-  'apostrophe-widgets': '@apostrophecms/widget-type',
-  'apostrophe-custom-pages': '@apostrophecms/page-type',
-  'apostrophe-pieces': '@apostrophecms/piece-type',
-  'apostrophe-pieces-pages': '@apostrophecms/piece-page-type',
-  'apostrophe-any-page-manager': '@apostrophecms/any-page-type',
-  'apostrophe-global': '@apostrophecms/global',
-  'apostrophe-polymorphic-manager': '@apostrophecms/polymorphic-type',
-  'apostrophe-pages': '@apostrophecms/page'
-};
-
-const fieldTypes = {
-  joinByArray: 'relationship',
-  joinByOne: 'relationship',
-  joinByArrayReverse: 'relationshipReverse',
-  joinByOneReverse: 'relationshipReverse'
-};
-
-const widgetTypes = {
-  'apostrophe-rich-text': '@apostrophecms/rich-text',
-  'apostrophe-video': '@apostrophecms/video',
-  'apostrophe-images': '@apostrophecms/image'
-};
+const {
+  moduleTypes, relationshipTypes, widgetTypes
+} = require('./config');
 
 module.exports = {
   construct(self, options) {
@@ -69,49 +48,12 @@ module.exports = {
                 } = cur;
 
                 if (cur.type === 'tags' || cur.type === 'array') {
-                  if (keepTags || cur.type === 'array') {
-                    const schema =
-                      cur.type === 'tags'
-                        ? [ {
-                          name,
-                          ...props,
-                          type: 'string',
-                          label: 'Tag'
-                        } ]
-                        : props.schema;
-
-                    const arrayFields = schema.reduce(
-                      (arrayAcc, arrayCur) => {
-                        const {
-                          name, moduleName, ...arrayProps
-                        } = arrayCur;
-                        arrayAcc.add[name] = arrayProps;
-                        return arrayAcc;
-                      },
-                      { add: {} }
-                    );
-
-                    acc[name] = {
-                      type: 'array',
-                      label: props.label,
-                      fields: arrayFields
-                    };
-                  }
+                  acc = handleArray(acc, cur, name, props, keepTags);
                 } else {
                   if (cur.type === 'area') {
-                    const widgets = Object.keys(props.options.widgets).reduce((widgetAcc, widgetCur) => {
-                      if (widgetTypes[widgetCur]) {
-                        const newWidgetName = widgetTypes[widgetCur];
-                        widgetAcc[newWidgetName] = props.options.widgets[widgetCur];
-                      }
-                      return widgetAcc;
-                    }, {});
-                    props.options.widgets = widgets;
-                  } else if (fieldTypes[cur.type]) {
-                    if (cur.type.includes('joinByOne')) {
-                      props.max = 1;
-                    }
-                    props.type = fieldTypes[cur.type];
+                    props.options.widgets = handleArea(props);
+                  } else if (relationshipTypes[cur.type]) {
+                    Object.assign(props, handleRelationship(cur));
                   }
 
                   acc[name] = props;
@@ -120,29 +62,92 @@ module.exports = {
                 return acc;
               }, {});
 
-              await fs.outputFile(
-                `${folder}/${moduleName}/schema.js`,
-                prettier.format(
-                  `
-                  module.exports = (self, options) => {
-                    return {
-                      extend: '${moduleTypeInA3}',
-                      options: {
-                        label: '${moduleName}',
-                      },
-                      fields: {
-                        add: ${JSON.stringify(fields, null, 2)}
-                      }
-                    };
-                  };
-                `,
-                  { singleQuote: true }
-                )
-              );
+              // do widgets now
+              await writeFile(folder, moduleName, moduleTypeInA3, fields);
             }
           }
         }
       }
     );
+
+    function handleArray(acc, cur, name, props, keepTags) {
+      if (keepTags || cur.type === 'array') {
+        const schema =
+          cur.type === 'tags'
+            ? [ {
+              name,
+              ...props,
+              type: 'string',
+              label: 'Tag'
+            } ]
+            : props.schema;
+
+        const arrayFields = schema.reduce(
+          (arrayAcc, arrayCur) => {
+            const {
+              name, moduleName, ...arrayProps
+            } = arrayCur;
+            arrayAcc.add[name] = arrayProps;
+            return arrayAcc;
+          },
+          { add: {} }
+        );
+
+        acc[name] = {
+          type: 'array',
+          label: props.label,
+          fields: arrayFields
+        };
+      }
+
+      return acc;
+    }
+
+    function handleArea(props) {
+      const widgets = Object.keys(props.options.widgets).reduce((widgetAcc, widgetCur) => {
+        if (widgetTypes[widgetCur]) {
+          const newWidgetName = widgetTypes[widgetCur];
+          widgetAcc[newWidgetName] = props.options.widgets[widgetCur];
+        }
+        return widgetAcc;
+      }, {});
+
+      return widgets;
+    }
+
+    function handleRelationship(cur) {
+      let max;
+      if (cur.type.includes('joinByOne')) {
+        max = 1;
+      }
+      const type = relationshipTypes[cur.type];
+
+      return {
+        max,
+        type
+      };
+    }
+
+    function writeFile(folder, moduleName, moduleTypeInA3, fields) {
+      return fs.outputFile(
+        `${folder}/${moduleName}/schema.js`,
+        prettier.format(
+          `
+          module.exports = (self, options) => {
+            return {
+              extend: '${moduleTypeInA3}',
+              options: {
+                label: '${moduleName}',
+              },
+              fields: {
+                add: ${JSON.stringify(fields, null, 2)}
+              }
+            };
+          };
+        `,
+          { singleQuote: true }
+        )
+      );
+    }
   }
 };
