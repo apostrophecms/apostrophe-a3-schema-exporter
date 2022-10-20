@@ -5,7 +5,6 @@ const {
   moduleTypes, relationshipTypes, widgetTypes
 } = require('./config');
 
-// relationship with @apostrophecms/page
 module.exports = {
   alias: 'a3SchemaExporter',
   construct(self, options) {

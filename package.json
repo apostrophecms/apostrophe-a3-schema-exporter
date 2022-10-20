@@ -4,8 +4,7 @@
   "description": "A2 utility task to export schemas to A3 format",
   "main": "index.js",
   "scripts": {
-    "test": "mocha",
-    "test:cover": "nyc mocha"
+    "test": "mocha"
   },
   "author": "Apostrophe Technologies, Inc.",
   "license": "MIT",
@@ -23,7 +22,6 @@
     "eslint-config-standard": "^16.0.3",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^5.1.1",
-    "mocha": "^9.1.3",
-    "nyc": "^15.1.0"
+    "mocha": "^9.1.3"
   }
 }
