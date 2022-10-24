@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-expressions */
-const fs = require('fs-extra');
-const { expect } = require('chai');
+const fs = require('fs');
+const assert = require('assert');
 const { promisify } = require('util');
 const a3SchemaExporter = require('../index');
 
@@ -11,9 +11,18 @@ describe('Apostrophe-a3-schema-exporter', function() {
   after(async () => {
     const destroy = promisify(require('apostrophe/test-lib/util').destroy);
     await destroy(apos);
-    fs.removeSync('./test/locales');
-    fs.removeSync('./test/data');
-    fs.removeSync('./test/public');
+    fs.rmSync('./test/locales', {
+      recursive: true,
+      force: true
+    });
+    fs.rmSync('./test/data', {
+      recursive: true,
+      force: true
+    });
+    fs.rmSync('./test/public', {
+      recursive: true,
+      force: true
+    });
   });
 
   before((done) => {
@@ -60,7 +69,7 @@ describe('Apostrophe-a3-schema-exporter', function() {
     const name = 'content';
     const props = cur;
 
-    const generatedArray = apos.a3SchemaExporter.handleArray(
+    const generatedArray = apos.modules['apostrophe-a3-schema-exporter'].handleArray(
       acc,
       cur,
       name,
@@ -68,7 +77,7 @@ describe('Apostrophe-a3-schema-exporter', function() {
       false
     );
 
-    expect(generatedArray).to.deep.equal({
+    assert.deepEqual(generatedArray, {
       content: {
         type: 'array',
         label: 'Content',
@@ -105,7 +114,7 @@ describe('Apostrophe-a3-schema-exporter', function() {
       type: 'tags',
       label: 'Tags'
     };
-    const generatedArray = apos.a3SchemaExporter.handleArray(
+    const generatedArray = apos.modules['apostrophe-a3-schema-exporter'].handleArray(
       acc,
       cur,
       name,
@@ -113,7 +122,7 @@ describe('Apostrophe-a3-schema-exporter', function() {
       true
     );
 
-    expect(generatedArray).to.deep.equal({
+    assert.deepEqual(generatedArray, {
       tags: {
         type: 'array',
         label: 'Tags',
@@ -141,9 +150,9 @@ describe('Apostrophe-a3-schema-exporter', function() {
         }
       }
     };
-    const generatedArea = apos.a3SchemaExporter.handleArea(props);
+    const generatedArea = apos.modules['apostrophe-a3-schema-exporter'].handleArea(props);
 
-    expect(generatedArea).to.deep.equal({
+    assert.deepEqual(generatedArea, {
       '@apostrophecms/rich-text': { toolbar: [ 'Undo', 'Redo' ] },
       '@apostrophecms/image': { size: 'full' },
       '@apostrophecms/video': {}
@@ -157,13 +166,13 @@ describe('Apostrophe-a3-schema-exporter', function() {
       label: 'Article',
       idField: 'articleId'
     };
-    const generatedRelationship = apos.a3SchemaExporter.handleRelationship(cur);
+    const generatedRelationship = apos.modules['apostrophe-a3-schema-exporter'].handleRelationship(cur);
 
-    expect(generatedRelationship).to.contain({
+    assert(generatedRelationship, {
       max: 1,
       type: 'relationship'
     });
-    expect(generatedRelationship.filters).to.be.undefined;
+    assert.strictEqual(generatedRelationship.filters, undefined);
   });
 
   it('should handle joinByArray', async () => {
@@ -173,13 +182,13 @@ describe('Apostrophe-a3-schema-exporter', function() {
       label: 'Articles',
       idsField: 'articlesId'
     };
-    const generatedRelationship = apos.a3SchemaExporter.handleRelationship(cur);
+    const generatedRelationship = apos.modules['apostrophe-a3-schema-exporter'].handleRelationship(cur);
 
-    expect(generatedRelationship).to.contain({
+    assert(generatedRelationship, {
       type: 'relationship'
     });
-    expect(generatedRelationship.filters).to.be.undefined;
-    expect(generatedRelationship.max).to.be.undefined;
+    assert.strictEqual(generatedRelationship.filters, undefined);
+    assert.strictEqual(generatedRelationship.max, undefined);
   });
 
   it('should handle reverse joins', async () => {
@@ -191,14 +200,14 @@ describe('Apostrophe-a3-schema-exporter', function() {
       idsField: 'categoryIds',
       withType: 'article'
     };
-    const generatedRelationship = apos.a3SchemaExporter.handleRelationship(cur);
+    const generatedRelationship = apos.modules['apostrophe-a3-schema-exporter'].handleRelationship(cur);
 
-    expect(generatedRelationship).to.contain({
+    assert(generatedRelationship, {
       type: 'relationshipReverse',
       withType: 'article'
     });
-    expect(generatedRelationship.filters).to.be.undefined;
-    expect(generatedRelationship.max).to.be.undefined;
+    assert.strictEqual(generatedRelationship.filters, undefined);
+    assert.strictEqual(generatedRelationship.max, undefined);
   });
 
   it('should convert join filters to builders', () => {
@@ -216,21 +225,21 @@ describe('Apostrophe-a3-schema-exporter', function() {
         }
       }
     };
-    const generatedRelationship = apos.a3SchemaExporter.handleRelationship(cur);
+    const generatedRelationship = apos.modules['apostrophe-a3-schema-exporter'].handleRelationship(cur);
 
-    expect(generatedRelationship).to.contain({
+    assert(generatedRelationship, {
       type: 'relationship',
       withType: 'article'
     });
-    expect(generatedRelationship.filters).to.be.undefined;
-    expect(generatedRelationship.builders).to.deep.nested.contain({
+    assert.strictEqual(generatedRelationship.filters, undefined);
+    assert(generatedRelationship.builders, {
       project: {
         title: 1,
         slug: 1,
         type: 1
       }
     });
-    expect(generatedRelationship.builders.projection).to.be.undefined;
+    assert.strictEqual(generatedRelationship.builders.projection, undefined);
   });
 
   it('should convert joins with A2 type to A3', () => {
@@ -241,9 +250,9 @@ describe('Apostrophe-a3-schema-exporter', function() {
       withType: 'apostrophe-page',
       idField: 'pageId'
     };
-    const generatedRelationship = apos.a3SchemaExporter.handleRelationship(cur);
+    const generatedRelationship = apos.modules['apostrophe-a3-schema-exporter'].handleRelationship(cur);
 
-    expect(generatedRelationship).to.contain({
+    assert(generatedRelationship, {
       type: 'relationship',
       withType: '@apostrophecms/page'
     });

@@ -1,4 +1,4 @@
-const fs = require('fs-extra');
+const fs = require('fs/promises');
 const prettier = require('prettier');
 const { stripIndent } = require('common-tags');
 const {
@@ -6,7 +6,6 @@ const {
 } = require('./config');
 
 module.exports = {
-  alias: 'a3SchemaExporter',
   construct(self, options) {
     self.addTask(
       'export',
@@ -29,59 +28,67 @@ module.exports = {
           return aposModule.__meta.name.includes(nativeModule);
         });
 
-        if (isCustomModule && aposModule.schema && aposModule.schema.length) {
-          const moduleTypeInA2 = aposModule.__meta.chain
-            .reverse()
-            .find(element => Object.keys(moduleTypes).find(type => element.name === type));
+        if (!isCustomModule || aposModule?.schema.length) {
+          return;
+        }
 
-          const moduleName = aposModule.schema[0].moduleName;
-          if (
-            moduleTypeInA2 && moduleTypeInA2.name &&
+        const moduleTypeInA2 = aposModule.__meta.chain
+          .reverse()
+          .find(element => Object.keys(moduleTypes).find(type => element.name === type));
+
+        const moduleName = aposModule.schema[0].moduleName;
+        if (
+          moduleTypeInA2 &&
+            moduleTypeInA2.name &&
             moduleName &&
-            (await fs.pathExists(`${folder}/${moduleName}`))
-          ) {
-            const moduleTypeInA3 = moduleTypes[moduleTypeInA2.name];
-            const fields = aposModule.schema.reduce((acc, cur) => {
-              const {
-                sortify,
-                group,
-                moduleName,
+            (await fs.stat(`${folder}/${moduleName}`))
+        ) {
+          const moduleTypeInA3 = moduleTypes[moduleTypeInA2.name];
+          const fields = aposModule.schema.reduce((acc, cur) => {
+            const {
+              sortify, group, moduleName, name, checkTaken, ...props
+            } = cur;
+
+            if (cur.type === 'tags' || cur.type === 'array') {
+              acc = self.handleArray({
+                acc,
+                cur,
                 name,
-                checkTaken,
-                ...props
-              } = cur;
-
-              if (cur.type === 'tags' || cur.type === 'array') {
-                acc = self.handleArray(acc, cur, name, props, keepTags);
-              } else {
-                if (cur.type === 'area') {
-                  props.options.widgets = self.handleArea(props);
-                } else if (relationshipTypes[cur.type]) {
-                  Object.assign(props, self.handleRelationship(cur));
-                }
-
-                acc[name] = props;
+                props,
+                keepTags
+              });
+            } else {
+              if (cur.type === 'area') {
+                props.options.widgets = self.handleArea(props);
+              } else if (relationshipTypes[cur.type]) {
+                Object.assign(props, self.handleRelationship(cur));
               }
 
-              return acc;
-            }, {});
+              acc[name] = props;
+            }
 
-            await self.writeFile(folder, moduleName, moduleTypeInA3, fields);
-          }
+            return acc;
+          }, {});
+
+          await self.writeFile(folder, moduleName, moduleTypeInA3, fields);
         }
       }
     };
 
-    self.handleArray = (acc, cur, name, props, keepTags) => {
+    self.handleArray = ({
+      acc, cur, name, props, keepTags
+    }) => {
       if (keepTags || cur.type === 'array') {
         const schema =
           cur.type === 'tags'
-            ? [ {
-              name,
-              ...props,
-              type: 'string',
-              label: 'Tag'
-            } ]
+            ? [
+              {
+                name,
+                ...props,
+                type: 'string',
+                label: 'Tag'
+              }
+            ]
             : props.schema;
 
         const arrayFields = schema.reduce(
@@ -123,7 +130,7 @@ module.exports = {
     };
 
     self.handleRelationship = (cur) => {
-      let max, builders, filters, withType;
+      let max, builders, filters;
       const type = relationshipTypes[cur.type];
 
       if (cur.type.includes('joinByOne')) {
@@ -141,13 +148,9 @@ module.exports = {
         filters = undefined;
       }
 
-      if (cur.withType) {
-        withType = cur.withType;
-
-        if (withType.startsWith('apostrophe-')) {
-          withType = `@apostrophecms/${withType.split('apostrophe-')[1]}`;
-        }
-      }
+      const withType = cur?.withType.startsWith('apostrophe-')
+        ? `@apostrophecms/${cur.withType.slice('apostrophe-'.length)}`
+        : cur.withType;
 
       return {
         max,
@@ -159,7 +162,7 @@ module.exports = {
     };
 
     self.writeFile = (folder, moduleName, moduleTypeInA3, fields) =>
-      fs.outputFile(
+      fs.writeFile(
         `${folder}/${moduleName}/schema.js`,
         prettier.format(
           `

@@ -10,13 +10,10 @@
   "license": "MIT",
   "dependencies": {
     "common-tags": "^1.8.2",
-    "escodegen": "^2.0.0",
-    "fs-extra": "^10.1.0",
     "prettier": "^2.7.1"
   },
   "devDependencies": {
     "apostrophe": "^2.222.0",
-    "chai": "^4.3.6",
     "eslint": "^7.1.0",
     "eslint-config-apostrophe": "^3.4.1",
     "eslint-config-standard": "^16.0.3",
