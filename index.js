@@ -57,15 +57,12 @@ module.exports = {
                 props,
                 keepTags
               });
-            } else {
-              if (cur.type === 'area') {
-                props.options.widgets = self.handleArea(props);
-              } else if (relationshipTypes[cur.type]) {
-                Object.assign(props, self.handleRelationship(cur));
-              }
 
-              acc[name] = props;
+              return acc;
             }
+
+            const newProps = self.checkAreaOrRelationship(cur, props);
+            acc[name] = newProps;
 
             return acc;
           }, {});
@@ -97,13 +94,9 @@ module.exports = {
               name, moduleName, ...arrayProps
             } = arrayCur;
 
-            if (arrayCur.type === 'area') {
-              arrayProps.options.widgets = self.handleArea(arrayProps);
-            } else if (relationshipTypes[arrayCur.type]) {
-              Object.assign(arrayProps, self.handleRelationship(arrayCur));
-            }
+            const newArrayProps = self.checkAreaOrRelationship(arrayCur, arrayProps);
 
-            arrayAcc.add[name] = arrayProps;
+            arrayAcc.add[name] = newArrayProps;
             return arrayAcc;
           },
           { add: {} }
@@ -117,6 +110,16 @@ module.exports = {
       }
 
       return acc;
+    };
+
+    self.checkAreaOrRelationship = (field, props) => {
+      if (field.type === 'area') {
+        props.options.widgets = self.handleArea(props);
+      } else if (relationshipTypes[field.type]) {
+        Object.assign(props, self.handleRelationship(field));
+      }
+
+      return props;
     };
 
     self.handleArea = (props) => {
@@ -148,7 +151,7 @@ module.exports = {
         filters = undefined;
       }
 
-      const withType = cur?.withType.startsWith('apostrophe-')
+      const withType = cur?.withType?.startsWith('apostrophe-')
         ? `@apostrophecms/${cur.withType.slice('apostrophe-'.length)}`
         : cur.withType;
 

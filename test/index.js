@@ -69,13 +69,12 @@ describe('Apostrophe-a3-schema-exporter', function() {
     const name = 'content';
     const props = cur;
 
-    const generatedArray = apos.modules['apostrophe-a3-schema-exporter'].handleArray(
+    const generatedArray = apos.modules['apostrophe-a3-schema-exporter'].handleArray({
       acc,
       cur,
       name,
-      props,
-      false
-    );
+      props
+    });
 
     assert.deepEqual(generatedArray, {
       content: {
@@ -114,13 +113,13 @@ describe('Apostrophe-a3-schema-exporter', function() {
       type: 'tags',
       label: 'Tags'
     };
-    const generatedArray = apos.modules['apostrophe-a3-schema-exporter'].handleArray(
+    const generatedArray = apos.modules['apostrophe-a3-schema-exporter'].handleArray({
       acc,
       cur,
       name,
       props,
-      true
-    );
+      keepTags: true
+    });
 
     assert.deepEqual(generatedArray, {
       tags: {
