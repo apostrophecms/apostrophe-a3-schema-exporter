@@ -1,54 +1,7 @@
-/* eslint-disable no-unused-expressions */
-const fs = require('fs');
 const assert = require('assert');
-const { promisify } = require('util');
-const a3SchemaExporter = require('../index');
+const helpers = require('../helpers');
 
 describe('Apostrophe-a3-schema-exporter', function() {
-  this.timeout(10000);
-  let apos;
-
-  after(async () => {
-    const destroy = promisify(require('apostrophe/test-lib/util').destroy);
-    await destroy(apos);
-    fs.rmSync('./test/locales', {
-      recursive: true,
-      force: true
-    });
-    fs.rmSync('./test/data', {
-      recursive: true,
-      force: true
-    });
-    fs.rmSync('./test/public', {
-      recursive: true,
-      force: true
-    });
-  });
-
-  before((done) => {
-    apos = require('apostrophe')({
-      migrate: false,
-      shortName: 'apostrophe-schema-exporter-test',
-      modules: {
-        'apostrophe-assets': {
-          jQuery: 3
-        },
-        'apostrophe-express': {
-          port: 3000,
-          address: 'localhost',
-          session: {
-            secret: '12345'
-          }
-        },
-        'apostrophe-images': {
-          enableAltField: true
-        },
-        'apostrophe-a3-schema-exporter': a3SchemaExporter
-      },
-      afterListen: done
-    });
-  });
-
   it('should handle arrays', () => {
     const acc = {};
     const cur = {
@@ -69,11 +22,12 @@ describe('Apostrophe-a3-schema-exporter', function() {
     const name = 'content';
     const props = cur;
 
-    const generatedArray = apos.modules['apostrophe-a3-schema-exporter'].handleArray({
+    const generatedArray = helpers.handleArray({
       acc,
       cur,
       name,
-      props
+      props,
+      keepTags: false
     });
 
     assert.deepEqual(generatedArray, {
@@ -113,7 +67,7 @@ describe('Apostrophe-a3-schema-exporter', function() {
       type: 'tags',
       label: 'Tags'
     };
-    const generatedArray = apos.modules['apostrophe-a3-schema-exporter'].handleArray({
+    const generatedArray = helpers.handleArray({
       acc,
       cur,
       name,
@@ -149,7 +103,7 @@ describe('Apostrophe-a3-schema-exporter', function() {
         }
       }
     };
-    const generatedArea = apos.modules['apostrophe-a3-schema-exporter'].handleArea(props);
+    const generatedArea = helpers.handleArea(props);
 
     assert.deepEqual(generatedArea, {
       '@apostrophecms/rich-text': { toolbar: [ 'Undo', 'Redo' ] },
@@ -165,7 +119,7 @@ describe('Apostrophe-a3-schema-exporter', function() {
       label: 'Article',
       idField: 'articleId'
     };
-    const generatedRelationship = apos.modules['apostrophe-a3-schema-exporter'].handleRelationship(cur);
+    const generatedRelationship = helpers.handleRelationship(cur);
 
     assert(generatedRelationship, {
       max: 1,
@@ -181,7 +135,7 @@ describe('Apostrophe-a3-schema-exporter', function() {
       label: 'Articles',
       idsField: 'articlesId'
     };
-    const generatedRelationship = apos.modules['apostrophe-a3-schema-exporter'].handleRelationship(cur);
+    const generatedRelationship = helpers.handleRelationship(cur);
 
     assert(generatedRelationship, {
       type: 'relationship'
@@ -199,7 +153,7 @@ describe('Apostrophe-a3-schema-exporter', function() {
       idsField: 'categoryIds',
       withType: 'article'
     };
-    const generatedRelationship = apos.modules['apostrophe-a3-schema-exporter'].handleRelationship(cur);
+    const generatedRelationship = helpers.handleRelationship(cur);
 
     assert(generatedRelationship, {
       type: 'relationshipReverse',
@@ -224,7 +178,7 @@ describe('Apostrophe-a3-schema-exporter', function() {
         }
       }
     };
-    const generatedRelationship = apos.modules['apostrophe-a3-schema-exporter'].handleRelationship(cur);
+    const generatedRelationship = helpers.handleRelationship(cur);
 
     assert(generatedRelationship, {
       type: 'relationship',
@@ -249,7 +203,7 @@ describe('Apostrophe-a3-schema-exporter', function() {
       withType: 'apostrophe-page',
       idField: 'pageId'
     };
-    const generatedRelationship = apos.modules['apostrophe-a3-schema-exporter'].handleRelationship(cur);
+    const generatedRelationship = helpers.handleRelationship(cur);
 
     assert(generatedRelationship, {
       type: 'relationship',
