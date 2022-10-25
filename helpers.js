@@ -2,96 +2,113 @@ const fs = require('fs/promises');
 const prettier = require('prettier');
 const { relationshipTypes, widgetTypes } = require('./config');
 
-function handleArray ({
-  acc, cur, name, props, keepTags
-}) {
-  if (keepTags || cur.type === 'array') {
-    const schema =
-      cur.type === 'tags'
+function handleFieldType(field) {
+  let newField;
+
+  if (field.type === 'tags' || field.type === 'array') {
+    newField = handleArray(field);
+  } else if (field.type === 'area') {
+    newField = handleArea(field);
+  } else if (relationshipTypes[field.type]) {
+    newField = handleRelationship(field);
+  } else {
+    newField = field;
+  }
+
+  return newField;
+}
+
+function handleArray (field) {
+  const schema =
+      field.type === 'tags'
         ? [
           {
-            name,
-            ...props,
+            ...field,
+            name: 'tag',
             type: 'string',
             label: 'Tag'
           }
         ]
-        : props.schema;
+        : field.schema;
 
-    const arrayFields = schema.reduce(
-      (arrayAcc, arrayCur) => {
-        const {
-          name, moduleName, ...arrayProps
-        } = arrayCur;
+  const arrayFields = schema.reduce(
+    (arrayAcc, arrayCur) => {
+      const {
+        name, moduleName, ...arrayProps
+      } = arrayCur;
 
-        const newArrayProps = checkAreaOrRelationship(arrayCur, arrayProps);
+      const newArrayProps = handleFieldType(arrayProps);
 
-        arrayAcc.add[name] = newArrayProps;
-        return arrayAcc;
-      },
-      { add: {} }
-    );
+      arrayAcc.add[name] = newArrayProps;
+      return arrayAcc;
+    },
+    { add: {} }
+  );
 
-    acc[name] = {
-      type: 'array',
-      label: props.label,
-      fields: arrayFields
-    };
-  }
+  return {
+    type: 'array',
+    label: field.label,
+    fields: arrayFields
+  };
 
-  return acc;
 }
 
-function handleArea (props) {
-  return Object.keys(props.options.widgets).reduce((widgetAcc, widgetCur) => {
+function handleArea (field) {
+  const widgets = Object.keys(field.options.widgets).reduce((widgetAcc, widgetCur) => {
     if (widgetTypes[widgetCur]) {
       const newWidgetName = widgetTypes[widgetCur];
-      widgetAcc[newWidgetName] = props.options.widgets[widgetCur];
+      widgetAcc[newWidgetName] = field.options.widgets[widgetCur];
     }
     return widgetAcc;
   }, {});
+
+  return {
+    ...field,
+    options: {
+      widgets
+    }
+  };
 }
 
-function handleRelationship(cur) {
-  let max, builders, filters;
-  const type = relationshipTypes[cur.type];
+function handleRelationship(field) {
+  let max, builders;
+  const type = relationshipTypes[field.type];
 
-  if (cur.type.includes('joinByOne')) {
+  if (field.type.includes('joinByOne')) {
     max = 1;
   }
 
-  if (cur.filters) {
-    builders = cur.filters;
+  if (field.filters) {
+    builders = field.filters;
 
-    if (cur.filters.projection) {
-      builders.project = cur.filters.projection;
+    if (field.filters.projection) {
+      builders.project = field.filters.projection;
       builders.projection = undefined;
     }
-
-    filters = undefined;
   }
 
-  const withType = cur?.withType?.startsWith('apostrophe-')
-    ? `@apostrophecms/${cur.withType.slice('apostrophe-'.length)}`
-    : cur.withType;
+  const withType = field?.withType?.startsWith('apostrophe-')
+    ? `@apostrophecms/${field.withType.slice('apostrophe-'.length)}`
+    : field.withType;
 
   return {
+    ...field,
     max,
     type,
     builders,
-    filters,
     withType
   };
 }
 
-function checkAreaOrRelationship(field, props) {
-  if (field.type === 'area') {
-    props.options.widgets = handleArea(props);
-  } else if (relationshipTypes[field.type]) {
-    Object.assign(props, handleRelationship(field));
-  }
+function groupField(groups, group, fieldName) {
+  const groupName = group.name;
+  groups[groupName] = groups[groupName] || {
+    label: group.label,
+    fields: []
+  };
+  groups[groupName].fields.push(fieldName);
 
-  return props;
+  return groups;
 }
 
 function writeFile(folder, moduleName, moduleTypeInA3, fields) {
@@ -105,9 +122,7 @@ function writeFile(folder, moduleName, moduleTypeInA3, fields) {
           options: {
             label: '${moduleName}',
           },
-          fields: {
-            add: ${JSON.stringify(fields, null, 2)}
-          }
+          fields: ${JSON.stringify(fields, null, 2)},
         };
       };
     `,
@@ -121,8 +136,9 @@ function writeFile(folder, moduleName, moduleTypeInA3, fields) {
 
 module.exports = {
   writeFile,
+  groupField,
   handleArea,
   handleArray,
-  handleRelationship,
-  checkAreaOrRelationship
+  handleFieldType,
+  handleRelationship
 };

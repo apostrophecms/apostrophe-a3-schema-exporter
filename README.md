@@ -34,6 +34,11 @@ module.exports = {
 };
 ```
 
-This greatly helps with A2 to A3 migration although it miss things like fields being optional based on module.
+This greatly helps with A2 to A3 migration although manual review is required because it does not understand:
+
+- Fields being optional based beforeConstruct logic
+- Fields being inherited from a base class module like apostrophe-pieces, i.e. not necessary to redefine them in a subclass
+- Fields being removed via removeFields
+- Fields that no longer generally exist in A3, e.g. published
 
 If a module has a self.schema property, this code should generate a new schema from it.

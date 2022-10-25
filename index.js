@@ -2,8 +2,8 @@ const fs = require('fs/promises');
 const { stripIndent } = require('common-tags');
 const { moduleTypes } = require('./config');
 const {
-  checkAreaOrRelationship,
-  handleArray,
+  handleFieldType,
+  groupField,
   writeFile
 } = require('./helpers');
 
@@ -14,12 +14,11 @@ module.exports = {
       stripIndent`
         Exports A2 schemas to A3 format by outputting a "schema.js" file in every module folder.
 
-        Options:
+        Option:
         * --folder: folder name relative to root where to search for modules. By default, it is "lib/modules". Usage: --folder=src/lib/modules
-        * --keepTags: A3 does not have a "tags" field type anymore. If true, convert tags to an array containing strings. By default, false (tags are not kept). Usage: --keepTags
       `,
       async(apos, argv) => {
-        const { folder = 'lib/modules', keepTags } = argv;
+        const { folder = 'lib/modules' } = argv;
 
         for (const aposModule of Object.values(apos.modules)) {
           const nativeModules = [ 'apostrophe-', '-auto-pages' ];
@@ -48,23 +47,14 @@ module.exports = {
                 sortify, group, moduleName, name, checkTaken, ...props
               } = cur;
 
-              if (cur.type === 'tags' || cur.type === 'array') {
-                acc = handleArray({
-                  acc,
-                  cur,
-                  name,
-                  props,
-                  keepTags
-                });
-
-                return acc;
-              }
-
-              const newProps = checkAreaOrRelationship(cur, props);
-              acc[name] = newProps;
+              acc.add[name] = handleFieldType(props);
+              acc.group = groupField(acc.group, group, name);
 
               return acc;
-            }, {});
+            }, {
+              add: {},
+              group: {}
+            });
 
             await writeFile(folder, moduleName, moduleTypeInA3, fields);
           }
