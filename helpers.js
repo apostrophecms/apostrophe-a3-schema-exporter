@@ -85,6 +85,8 @@ function handleRelationship(field) {
       builders.project = field.filters.projection;
       builders.projection = undefined;
     }
+
+    field.filters = undefined;
   }
 
   const withType = field?.withType?.startsWith('apostrophe-')

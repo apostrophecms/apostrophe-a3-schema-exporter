@@ -3,47 +3,37 @@ const helpers = require('../helpers');
 
 describe('Apostrophe-a3-schema-exporter', function() {
   it('should handle arrays', () => {
-    const acc = {};
-    const cur = {
+    const field = {
       name: 'content-links',
       type: 'array',
-      schema: [ {
-        name: 'url',
-        label: 'Url',
-        type: 'url'
-      },
-      {
-        name: 'description',
-        label: 'Description',
-        type: 'string'
-      } ],
+      schema: [
+        {
+          name: 'url',
+          label: 'Url',
+          type: 'url'
+        },
+        {
+          name: 'description',
+          label: 'Description',
+          type: 'string'
+        }
+      ],
       label: 'Content'
     };
-    const name = 'content';
-    const props = cur;
-
-    const generatedArray = helpers.handleArray({
-      acc,
-      cur,
-      name,
-      props,
-      keepTags: false
-    });
+    const generatedArray = helpers.handleArray(field);
 
     assert.deepEqual(generatedArray, {
-      content: {
-        type: 'array',
-        label: 'Content',
-        fields: {
-          add: {
-            url: {
-              label: 'Url',
-              type: 'url'
-            },
-            description: {
-              label: 'Description',
-              type: 'string'
-            }
+      type: 'array',
+      label: 'Content',
+      fields: {
+        add: {
+          url: {
+            label: 'Url',
+            type: 'url'
+          },
+          description: {
+            label: 'Description',
+            type: 'string'
           }
         }
       }
@@ -51,40 +41,21 @@ describe('Apostrophe-a3-schema-exporter', function() {
   });
 
   it('should handle tags as an array', () => {
-    const acc = {};
-    const cur = {
+    const field = {
       type: 'tags',
       name: 'tags',
-      label: 'Tags',
-      group: {
-        name: 'basics',
-        label: 'Basics'
-      },
-      moduleName: 'categories'
-    };
-    const name = 'tags';
-    const props = {
-      type: 'tags',
       label: 'Tags'
     };
-    const generatedArray = helpers.handleArray({
-      acc,
-      cur,
-      name,
-      props,
-      keepTags: true
-    });
+    const generatedArray = helpers.handleArray(field);
 
     assert.deepEqual(generatedArray, {
-      tags: {
-        type: 'array',
-        label: 'Tags',
-        fields: {
-          add: {
-            tags: {
-              type: 'string',
-              label: 'Tag'
-            }
+      type: 'array',
+      label: 'Tags',
+      fields: {
+        add: {
+          tag: {
+            type: 'string',
+            label: 'Tag'
           }
         }
       }
@@ -106,9 +77,15 @@ describe('Apostrophe-a3-schema-exporter', function() {
     const generatedArea = helpers.handleArea(props);
 
     assert.deepEqual(generatedArea, {
-      '@apostrophecms/rich-text': { toolbar: [ 'Undo', 'Redo' ] },
-      '@apostrophecms/image': { size: 'full' },
-      '@apostrophecms/video': {}
+      label: 'Widgets',
+      type: 'area',
+      options: {
+        widgets: {
+          '@apostrophecms/rich-text': { toolbar: [ 'Undo', 'Redo' ] },
+          '@apostrophecms/image': { size: 'full' },
+          '@apostrophecms/video': {}
+        }
+      }
     });
   });
 
@@ -208,6 +185,60 @@ describe('Apostrophe-a3-schema-exporter', function() {
     assert(generatedRelationship, {
       type: 'relationship',
       withType: '@apostrophecms/page'
+    });
+  });
+
+  it('should add a group field', () => {
+    const groups = {
+      basics: {
+        label: 'Basics',
+        fields: [ 'title', 'slug', 'published' ]
+      }
+    };
+    const group = {
+      name: 'content',
+      label: 'Content'
+    };
+    const generatedGroups = helpers.groupField(groups, group, 'description');
+
+    assert.deepEqual(generatedGroups, {
+      basics: {
+        label: 'Basics',
+        fields: [ 'title', 'slug', 'published' ]
+      },
+      content: {
+        label: 'Content',
+        fields: [ 'description' ]
+      }
+    });
+  });
+
+  it('should update a group field', () => {
+    const groups = {
+      basics: {
+        label: 'Basics',
+        fields: [ 'title', 'slug', 'published' ]
+      },
+      content: {
+        label: 'Content',
+        fields: [ 'description' ]
+      }
+    };
+    const group = {
+      name: 'content',
+      label: 'Content'
+    };
+    const generatedGroups = helpers.groupField(groups, group, 'link');
+
+    assert.deepEqual(generatedGroups, {
+      basics: {
+        label: 'Basics',
+        fields: [ 'title', 'slug', 'published' ]
+      },
+      content: {
+        label: 'Content',
+        fields: [ 'description', 'link' ]
+      }
     });
   });
 });

@@ -36,8 +36,7 @@ module.exports = {
 
           const moduleName = aposModule.schema[0].moduleName;
           if (
-            moduleTypeInA2 &&
-              moduleTypeInA2.name &&
+            moduleTypeInA2?.name &&
               moduleName &&
               (await fs.stat(`${folder}/${moduleName}`))
           ) {
