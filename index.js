@@ -41,6 +41,7 @@ module.exports = {
               (await fs.stat(`${folder}/${moduleName}`))
           ) {
             const moduleTypeInA3 = moduleTypes[moduleTypeInA2.name];
+
             const fields = aposModule.schema.reduce((acc, cur) => {
               const {
                 sortify, group, moduleName, name, checkTaken, ...props

@@ -18,7 +18,7 @@ function handleFieldType(field) {
   return newField;
 }
 
-function handleArray (field) {
+function handleArray(field) {
   const schema =
       field.type === 'tags'
         ? [
@@ -53,7 +53,7 @@ function handleArray (field) {
 
 }
 
-function handleArea (field) {
+function handleArea(field) {
   const widgets = Object.keys(field.options.widgets).reduce((widgetAcc, widgetCur) => {
     if (widgetTypes[widgetCur]) {
       const newWidgetName = widgetTypes[widgetCur];
@@ -70,36 +70,26 @@ function handleArea (field) {
   };
 }
 
-function handleRelationship(field) {
-  let max, builders;
-  const type = relationshipTypes[field.type];
+function handleRelationship({
+  filters, type, withType, ...newField
+}) {
+  newField.type = relationshipTypes[type];
 
-  if (field.type.includes('joinByOne')) {
-    max = 1;
+  if (type.includes('joinByOne')) {
+    newField.max = 1;
   }
 
-  if (field.filters) {
-    builders = field.filters;
-
-    if (field.filters.projection) {
-      builders.project = field.filters.projection;
-      builders.projection = undefined;
-    }
-
-    field.filters = undefined;
+  if (filters) {
+    const { projection, ...builders } = filters;
+    newField.builders = builders;
+    newField.builders.project = projection;
   }
 
-  const withType = field?.withType?.startsWith('apostrophe-')
-    ? `@apostrophecms/${field.withType.slice('apostrophe-'.length)}`
-    : field.withType;
+  newField.withType = withType?.startsWith('apostrophe-')
+    ? `@apostrophecms/${withType.slice('apostrophe-'.length)}`
+    : withType;
 
-  return {
-    ...field,
-    max,
-    type,
-    builders,
-    withType
-  };
+  return newField;
 }
 
 function groupField(groups, group, fieldName) {
@@ -114,7 +104,7 @@ function groupField(groups, group, fieldName) {
 }
 
 function writeFile(folder, moduleName, moduleTypeInA3, fields) {
-  fs.writeFile(
+  return fs.writeFile(
     `${folder}/${moduleName}/schema.js`,
     prettier.format(
       `

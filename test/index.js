@@ -1,8 +1,8 @@
-const assert = require('assert');
+const assert = require('assert').strict;
 const helpers = require('../helpers');
 
 describe('Apostrophe-a3-schema-exporter', function() {
-  it('should handle arrays', () => {
+  it('should handle arrays', function() {
     const field = {
       name: 'content-links',
       type: 'array',
@@ -40,7 +40,7 @@ describe('Apostrophe-a3-schema-exporter', function() {
     });
   });
 
-  it('should handle tags as an array', () => {
+  it('should handle tags as an array', function() {
     const field = {
       type: 'tags',
       name: 'tags',
@@ -62,7 +62,7 @@ describe('Apostrophe-a3-schema-exporter', function() {
     });
   });
 
-  it('should handle areas', async () => {
+  it('should handle areas', function() {
     const props = {
       label: 'Widgets',
       type: 'area',
@@ -89,7 +89,7 @@ describe('Apostrophe-a3-schema-exporter', function() {
     });
   });
 
-  it('should handle joinByOne', async () => {
+  it('should handle joinByOne', function() {
     const cur = {
       type: 'joinByOne',
       name: '_article',
@@ -98,14 +98,15 @@ describe('Apostrophe-a3-schema-exporter', function() {
     };
     const generatedRelationship = helpers.handleRelationship(cur);
 
-    assert(generatedRelationship, {
+    assert.deepEqual(generatedRelationship, {
+      ...generatedRelationship,
       max: 1,
       type: 'relationship'
     });
-    assert.strictEqual(generatedRelationship.filters, undefined);
+    assert.equal(generatedRelationship.filters, undefined);
   });
 
-  it('should handle joinByArray', async () => {
+  it('should handle joinByArray', function() {
     const cur = {
       type: 'joinByArray',
       name: '_articles',
@@ -114,14 +115,15 @@ describe('Apostrophe-a3-schema-exporter', function() {
     };
     const generatedRelationship = helpers.handleRelationship(cur);
 
-    assert(generatedRelationship, {
+    assert.deepEqual(generatedRelationship, {
+      ...generatedRelationship,
       type: 'relationship'
     });
-    assert.strictEqual(generatedRelationship.filters, undefined);
-    assert.strictEqual(generatedRelationship.max, undefined);
+    assert.equal(generatedRelationship.filters, undefined);
+    assert.equal(generatedRelationship.max, undefined);
   });
 
-  it('should handle reverse joins', async () => {
+  it('should handle reverse joins', function() {
     const cur = {
       type: 'joinByArrayReverse',
       name: '_articles',
@@ -132,15 +134,16 @@ describe('Apostrophe-a3-schema-exporter', function() {
     };
     const generatedRelationship = helpers.handleRelationship(cur);
 
-    assert(generatedRelationship, {
+    assert.deepEqual(generatedRelationship, {
+      ...generatedRelationship,
       type: 'relationshipReverse',
       withType: 'article'
     });
-    assert.strictEqual(generatedRelationship.filters, undefined);
-    assert.strictEqual(generatedRelationship.max, undefined);
+    assert.equal(generatedRelationship.filters, undefined);
+    assert.equal(generatedRelationship.max, undefined);
   });
 
-  it('should convert join filters to builders', () => {
+  it('should convert join filters to builders', function() {
     const cur = {
       type: 'joinByArray',
       name: '_articles',
@@ -157,22 +160,24 @@ describe('Apostrophe-a3-schema-exporter', function() {
     };
     const generatedRelationship = helpers.handleRelationship(cur);
 
-    assert(generatedRelationship, {
+    assert.deepEqual(generatedRelationship, {
+      ...generatedRelationship,
       type: 'relationship',
       withType: 'article'
     });
-    assert.strictEqual(generatedRelationship.filters, undefined);
-    assert(generatedRelationship.builders, {
+    assert.equal(generatedRelationship.filters, undefined);
+    assert.deepEqual(generatedRelationship.builders, {
+      ...generatedRelationship.builders,
       project: {
         title: 1,
         slug: 1,
         type: 1
       }
     });
-    assert.strictEqual(generatedRelationship.builders.projection, undefined);
+    assert.equal(generatedRelationship.builders.projection, undefined);
   });
 
-  it('should convert joins with A2 type to A3', () => {
+  it('should convert joins with A2 type to A3', function() {
     const cur = {
       name: '_page',
       label: 'Link',
@@ -182,13 +187,14 @@ describe('Apostrophe-a3-schema-exporter', function() {
     };
     const generatedRelationship = helpers.handleRelationship(cur);
 
-    assert(generatedRelationship, {
+    assert.deepEqual(generatedRelationship, {
+      ...generatedRelationship,
       type: 'relationship',
       withType: '@apostrophecms/page'
     });
   });
 
-  it('should add a group field', () => {
+  it('should add a group field', function() {
     const groups = {
       basics: {
         label: 'Basics',
@@ -213,7 +219,7 @@ describe('Apostrophe-a3-schema-exporter', function() {
     });
   });
 
-  it('should update a group field', () => {
+  it('should update a group field', function() {
     const groups = {
       basics: {
         label: 'Basics',
