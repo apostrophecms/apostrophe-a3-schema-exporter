@@ -4,6 +4,8 @@ A command line task running in an A2 module that can "see" all of the schemas fo
 
 Iterates over all of these and adds a `schema.js` file in the A3 format in every custom module. You can change the parent folder name of modules. By default, it is `lib/modules`.
 
+**Pay attention, the script will overwrite existing `schema.js` files in your modules directories.**
+
 The directory structure would look like:
 
 ```

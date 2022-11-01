@@ -1,3 +1,4 @@
+const { constants } = require('fs');
 const fs = require('fs/promises');
 const { stripIndent } = require('common-tags');
 const { moduleTypes } = require('./config');
@@ -21,42 +22,39 @@ module.exports = {
         const { folder = 'lib/modules' } = argv;
 
         for (const aposModule of Object.values(apos.modules)) {
-          const nativeModules = [ 'apostrophe-', '-auto-pages' ];
-          const isCustomModule = !nativeModules.some(nativeModule => {
-            return aposModule.__meta.name.includes(nativeModule);
-          });
-
-          if (!isCustomModule || !aposModule?.schema.length) {
+          const unnecessaryModule = aposModule.__meta.name.includes('-auto-pages');
+          if (unnecessaryModule || !aposModule?.schema?.length) {
             continue;
           }
 
           const moduleTypeInA2 = aposModule.__meta.chain
             .reverse()
             .find(element => Object.keys(moduleTypes).find(type => element.name === type));
-
           const moduleName = aposModule.schema[0].moduleName;
-          if (
-            moduleTypeInA2?.name &&
-              moduleName &&
-              (await fs.stat(`${folder}/${moduleName}`))
-          ) {
-            const moduleTypeInA3 = moduleTypes[moduleTypeInA2.name];
 
-            const fields = aposModule.schema.reduce((acc, cur) => {
-              const {
-                sortify, group, moduleName, name, checkTaken, ...props
-              } = cur;
+          try {
+            await fs.access(`${folder}/${moduleName}`, constants.W_OK);
+            if (moduleTypeInA2?.name) {
+              const moduleTypeInA3 = moduleTypes[moduleTypeInA2.name];
 
-              acc.add[name] = handleFieldType(props);
-              acc.group = groupField(acc.group, group, name);
+              const fields = aposModule.schema.reduce((acc, cur) => {
+                const {
+                  sortify, group, moduleName, name, checkTaken, ...props
+                } = cur;
 
-              return acc;
-            }, {
-              add: {},
-              group: {}
-            });
+                acc.add[name] = handleFieldType(props);
+                acc.group = groupField(acc.group, group, name);
 
-            await writeFile(folder, moduleName, moduleTypeInA3, fields);
+                return acc;
+              }, {
+                add: {},
+                group: {}
+              });
+
+              await writeFile(folder, moduleName, moduleTypeInA3, fields);
+            }
+          } catch {
+            // module not found at project level; skipping it
           }
         }
       }
