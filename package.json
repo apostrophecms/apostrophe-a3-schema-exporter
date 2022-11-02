@@ -10,8 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "common-tags": "^1.8.2",
-    "escodegen": "^2.0.0",
-    "fs-extra": "^10.1.0"
+    "prettier": "^2.7.1"
   },
   "devDependencies": {
     "eslint": "^7.1.0",
