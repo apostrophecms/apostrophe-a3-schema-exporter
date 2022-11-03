@@ -2,11 +2,7 @@ const { constants } = require('fs');
 const fs = require('fs/promises');
 const { stripIndent } = require('common-tags');
 const { moduleTypes } = require('./config');
-const {
-  handleFieldType,
-  groupField,
-  writeFile
-} = require('./helpers');
+const { generateFields, writeFile } = require('./helpers');
 
 module.exports = {
   construct(self, options) {
@@ -17,9 +13,10 @@ module.exports = {
 
         Option:
         * --folder: folder name relative to root where to search for modules. By default, it is "lib/modules". Usage: --folder=src/lib/modules
+        * --module: output an entire module instead of only the "fields" object
       `,
-      async(apos, argv) => {
-        const { folder = 'lib/modules' } = argv;
+      async (apos, argv) => {
+        const { folder = 'lib/modules', module: exportModule } = argv;
 
         for (const aposModule of Object.values(apos.modules)) {
           const unnecessaryModule = aposModule.__meta.name.includes('-auto-pages');
@@ -36,22 +33,8 @@ module.exports = {
             await fs.access(`${folder}/${moduleName}`, constants.W_OK);
             if (moduleTypeInA2?.name) {
               const moduleTypeInA3 = moduleTypes[moduleTypeInA2.name];
-
-              const fields = aposModule.schema.reduce((acc, cur) => {
-                const {
-                  sortify, group, moduleName, name, checkTaken, ...props
-                } = cur;
-
-                acc.add[name] = handleFieldType(props);
-                acc.group = groupField(acc.group, group, name);
-
-                return acc;
-              }, {
-                add: {},
-                group: {}
-              });
-
-              await writeFile(folder, moduleName, moduleTypeInA3, fields);
+              const fields = generateFields(aposModule.schema);
+              await writeFile(folder, moduleName, moduleTypeInA3, fields, exportModule);
             }
           } catch {
             // module not found at project level; skipping it
