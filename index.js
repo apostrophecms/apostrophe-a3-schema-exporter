@@ -15,7 +15,7 @@ module.exports = {
         * --folder: folder name relative to root where to search for modules. By default, it is "lib/modules". Usage: --folder=src/lib/modules
         * --module: output an entire module instead of only the "fields" object
       `,
-      async (apos, argv) => {
+      async(apos, argv) => {
         const { folder = 'lib/modules', module: exportModule } = argv;
 
         for (const aposModule of Object.values(apos.modules)) {
