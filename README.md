@@ -45,18 +45,6 @@ module.exports = {
 };
 ```
 
-Another option is to output an entire module instead of the `fields` object by passing the option `--module`.
-
-```
-node app apostrophe-a3-schema-exporter:export --module
-```
-
-It will be `require`d in the custom-module/index.js:
-
-```js
-module.exports = require('./schema.js');
-```
-
 This greatly helps with A2 to A3 migration although manual review is required because it does not understand:
 
 - Fields being optional based beforeConstruct logic

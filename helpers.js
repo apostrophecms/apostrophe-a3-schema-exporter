@@ -129,22 +129,8 @@ function groupField(groups, group, fieldName) {
   return groups;
 }
 
-function writeFile(folder, moduleName, moduleTypeInA3, fields, exportModule) {
-  const content = exportModule
-    ? `
-    module.exports = {
-      extend: '${moduleTypeInA3}',
-      options: {
-        label: '${moduleName}',
-      },
-      fields: ${JSON.stringify(fields, null, 2)}
-    };
-  `
-    : `
-    module.exports = {
-      ${JSON.stringify(fields, null, 2)};
-    };
-  `;
+function writeFile(folder, moduleName, fields) {
+  const content = `module.exports = ${JSON.stringify(fields, null, 2)};`;
 
   return fs.writeFile(
     `${folder}/${moduleName}/schema.js`,
