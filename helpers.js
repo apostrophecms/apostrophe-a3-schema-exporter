@@ -31,7 +31,7 @@ function handleFieldType(field) {
 
   if (field.type === 'tags' || field.type === 'array') {
     newField = handleArray(field);
-  } else if (field.type === 'area') {
+  } else if (field.type === 'area' || field.type === 'singleton') {
     newField = handleArea(field);
   } else if (relationshipTypes[field.type]) {
     newField = handleRelationship(field);
@@ -78,20 +78,33 @@ function handleArray(field) {
 }
 
 function handleArea(field) {
-  const widgets = Object.keys(field.options.widgets).reduce((widgetAcc, widgetCur) => {
-    if (widgetTypes[widgetCur]) {
-      const newWidgetName = widgetTypes[widgetCur];
-      widgetAcc[newWidgetName] = field.options.widgets[widgetCur];
-    }
-    return widgetAcc;
-  }, {});
+  if (field.type === 'singleton') {
+    return {
+      label: field.label,
+      type: 'area',
+      options: {
+        widgets: getWidgets(field.options, field.widgetType),
+        max: 1
+      }
+    };
+  }
 
   return {
     ...field,
     options: {
-      widgets
+      widgets: Object.keys(field.options.widgets).reduce((widgetAcc, widgetCur) => {
+        return {
+          ...widgetAcc,
+          ...getWidgets(field.options.widgets, widgetCur)
+        };
+      }, {})
     }
   };
+
+  function getWidgets(currentWidgets = {}, widgetName) {
+    const newWidgetName = widgetTypes[widgetName] ? widgetTypes[widgetName] : widgetName;
+    return { [newWidgetName]: currentWidgets[widgetName] || currentWidgets };
+  }
 }
 
 function handleRelationship({

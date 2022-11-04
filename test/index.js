@@ -115,6 +115,36 @@ describe('Apostrophe-a3-schema-exporter', function() {
     });
   });
 
+  it('should handle singletons', function() {
+    const props = {
+      name: 'thumbnail',
+      label: 'Thumbnail',
+      type: 'singleton',
+      widgetType: 'apostrophe-images',
+      options: {
+        aspectRatio: [ 4, 3 ],
+        minSize: [ 400, 300 ],
+        limit: 1
+      }
+    };
+    const generatedSingleton = helpers.handleArea(props);
+
+    assert.deepEqual(generatedSingleton, {
+      label: 'Thumbnail',
+      type: 'area',
+      options: {
+        widgets: {
+          '@apostrophecms/image': {
+            aspectRatio: [ 4, 3 ],
+            minSize: [ 400, 300 ],
+            limit: 1
+          }
+        },
+        max: 1
+      }
+    });
+  });
+
   it('should handle joinByOne', function() {
     const cur = {
       type: 'joinByOne',
