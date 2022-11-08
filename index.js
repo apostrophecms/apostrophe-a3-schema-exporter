@@ -1,12 +1,7 @@
 const { constants } = require('fs');
 const fs = require('fs/promises');
 const { stripIndent } = require('common-tags');
-const { moduleTypes } = require('./config');
-const {
-  handleFieldType,
-  groupField,
-  writeFile
-} = require('./helpers');
+const { generateFields, writeFile } = require('./helpers');
 
 module.exports = {
   construct(self, options) {
@@ -27,32 +22,11 @@ module.exports = {
             continue;
           }
 
-          const moduleTypeInA2 = aposModule.__meta.chain
-            .reverse()
-            .find(element => Object.keys(moduleTypes).find(type => element.name === type));
-          const moduleName = aposModule.schema[0].moduleName;
-
           try {
+            const moduleName = aposModule.schema[0].moduleName;
             await fs.access(`${folder}/${moduleName}`, constants.W_OK);
-            if (moduleTypeInA2?.name) {
-              const moduleTypeInA3 = moduleTypes[moduleTypeInA2.name];
-
-              const fields = aposModule.schema.reduce((acc, cur) => {
-                const {
-                  sortify, group, moduleName, name, checkTaken, ...props
-                } = cur;
-
-                acc.add[name] = handleFieldType(props);
-                acc.group = groupField(acc.group, group, name);
-
-                return acc;
-              }, {
-                add: {},
-                group: {}
-              });
-
-              await writeFile(folder, moduleName, moduleTypeInA3, fields);
-            }
+            const fields = generateFields(aposModule.schema);
+            await writeFile(folder, moduleName, fields);
           } catch {
             // module not found at project level; skipping it
           }
