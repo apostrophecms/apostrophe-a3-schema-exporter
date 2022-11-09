@@ -1,5 +1,7 @@
 # Changelog
 
-## UNRELEASED
+## 1.0.0 (2022-11-09)
 
-A2 utility task to export schemas to A3 format
+### Adds
+
+* A2 utility task to export schemas to A3 format.
